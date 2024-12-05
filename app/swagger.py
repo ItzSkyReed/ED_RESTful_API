@@ -5,9 +5,9 @@ from rest_framework.authentication import SessionAuthentication, BasicAuthentica
 
 schema_view = get_schema_view(
     openapi.Info(
-        title="My API",
+        title="API",
         default_version='v1',
-        description="Test description",
+        description="Крутое описание",
         contact=openapi.Contact(email="contact"),
     ),
     public=True,

@@ -41,7 +41,7 @@ class GuestListView(APIView):
 
 class GuestDetailView(APIView):
     @swagger_auto_schema(
-        operation_description="Получить гостя по pk",
+        operation_description="Получить гостя по id",
         responses={
             200: GuestSerializer,
             404: openapi.Response(description="Гость не найден"),
@@ -52,7 +52,7 @@ class GuestDetailView(APIView):
         if guest:
             serializer = GuestSerializer(guest)
             return Response(serializer.data)
-        return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"detail": "Не найдено."}, status=status.HTTP_404_NOT_FOUND)
 
     @swagger_auto_schema(
         operation_description="Обновить данные существующего гостя",
@@ -65,7 +65,7 @@ class GuestDetailView(APIView):
     def put(self, request: Request, pk: int):
         guest = Guest.objects.filter(pk=pk).first()
         if not guest:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Не найдено."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = GuestSerializer(guest, data=request.data)
         if serializer.is_valid():
@@ -83,7 +83,7 @@ class GuestDetailView(APIView):
     def delete(self, request: Request, pk: int):
         guest = Guest.objects.filter(pk=pk).first()
         if not guest:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Не найдено."}, status=status.HTTP_404_NOT_FOUND)
         guest.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -101,7 +101,7 @@ class GuestByEmailView(APIView):
         if guest:
             serializer = GuestSerializer(guest)
             return Response(serializer.data)
-        return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"detail": "Не найдено."}, status=status.HTTP_404_NOT_FOUND)
 
 
 class RoomListView(APIView):
@@ -134,7 +134,7 @@ class RoomListView(APIView):
 
 class RoomDetailView(APIView):
     @swagger_auto_schema(
-        operation_description="Получить гостя по pk",
+        operation_description="Получить комнату по id",
         responses={
             200: RoomSerializer,
             404: openapi.Response(description="Комнаты с таким id"),
@@ -158,7 +158,7 @@ class RoomDetailView(APIView):
     def put(self, request: Request, pk: int):
         room = Room.objects.filter(pk=pk).first()
         if not room:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Не найдено."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = RoomSerializer(room, data=request.data)
         if serializer.is_valid():
@@ -176,14 +176,14 @@ class RoomDetailView(APIView):
     def delete(self, request: Request, pk: int):
         room = Room.objects.filter(pk=pk).first()
         if not room:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Не найдено."}, status=status.HTTP_404_NOT_FOUND)
         room.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class RoomByNumView(APIView):
     @swagger_auto_schema(
-        operation_description="Получить комнату по номеру",
+        operation_description="Получить комнату по её номеру",
         responses={
             200: RoomSerializer,
             404: openapi.Response(description="Комнаты с таким номером нет"),
@@ -194,7 +194,7 @@ class RoomByNumView(APIView):
         if room:
             serializer = RoomSerializer(room)
             return Response(serializer.data)
-        return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"detail": "Не найдено."}, status=status.HTTP_404_NOT_FOUND)
 
 
 class BookingFilteredListView(APIView):
@@ -211,7 +211,10 @@ class BookingFilteredListView(APIView):
             check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
             check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
         except ValueError:
-            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Неправильный формат даты. Используйте YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if check_out_date < check_in_date:
+            return Response({"error": "Дата выезда раньше даты въезда."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Фильтрация по датам
         bookings = Booking.objects.filter(check_in__gte=check_in_date, check_out__lte=check_out_date)
@@ -239,7 +242,10 @@ class BookingListView(APIView):
                 check_in_date = datetime.strptime(str(check_in), '%Y-%m-%d').date()
                 check_out_date = datetime.strptime(str(check_out), '%Y-%m-%d').date()
             except ValueError:
-                return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Неправильный формат даты. Используйте YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if check_out_date < check_in_date:
+                return Response({"error": "Дата выезда раньше даты въезда."}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
                 booking = Booking.create_booking(guest_email, room_number, check_in_date, check_out_date)
@@ -251,7 +257,7 @@ class BookingListView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @swagger_auto_schema(
-        operation_description="Получить список всех резервирований.",
+        operation_description="Получить список всех резервирований",
         responses={200: BookingSerializer(many=True)},
     )
     def get(self, request: Request):
@@ -277,28 +283,31 @@ class BookingUpdateView(APIView):
             check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
             check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
         except ValueError:
-            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Неправильный формат даты. Используйте YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if check_out_date < check_in_date:
+            return Response({"error": "Дата выезда раньше даты въезда."}, status=status.HTTP_400_BAD_REQUEST)
 
         room = Room.objects.filter(room_number=room_number).first()
         if not room:
-            return Response({"detail": "Room not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Комната не найдена."}, status=status.HTTP_404_NOT_FOUND)
 
         overlapping_bookings = Booking.objects.filter(
             room=room,
             check_in__lte=check_out,  # Начало бронирования не позднее конца запрашиваемого
-            check_out__gte=check_in  # Конец бронирования не раньше начала запрашиваемого
+            check_out__gte=check_in,  # Конец бронирования не раньше начала запрашиваемого
         )
 
         if overlapping_bookings.exists():
-            return Response(f"Room {room.room_number} is already booked for the selected dates.")
+            return Response(f"Комната {room.room_number} уже забронирована на существующие даты.")
 
         guest = Guest.objects.filter(email=guest_email).first()
         if not guest:
-            return Response({"detail": "Guest not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Гость не найден."}, status=status.HTTP_404_NOT_FOUND)
 
         booking = Booking.objects.filter(pk=pk).first()
         if not booking:
-            return Response({"detail": "Booking not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Бронирование не найдено."}, status=status.HTTP_404_NOT_FOUND)
 
         # Обновляем данные бронирования
         booking.guest = guest
@@ -310,7 +319,7 @@ class BookingUpdateView(APIView):
         return Response(BookingGetSerializer(booking).data, status=status.HTTP_200_OK)
 
     @swagger_auto_schema(
-        operation_description="Удаление существующей комнаты",
+        operation_description="Удаление существующего бронирования по id",
         responses={
             204: openapi.Response(description="Комната успешно удалена"),
             404: openapi.Response(description="Комната не найдена"),
@@ -319,6 +328,6 @@ class BookingUpdateView(APIView):
     def delete(self, request: Request, pk: int):
         booking = Booking.objects.filter(pk=pk).first()
         if not Booking:
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Не Найдено."}, status=status.HTTP_404_NOT_FOUND)
         booking.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

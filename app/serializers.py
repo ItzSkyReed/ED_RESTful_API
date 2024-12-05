@@ -22,8 +22,8 @@ class BookingSerializer(serializers.ModelSerializer):
 
 
 class BookingGetSerializer(serializers.ModelSerializer):
-    guest_email = serializers.EmailField(source='guest.email', read_only=True)  # Email гостя
-    room_number = serializers.IntegerField(source='room.room_number', read_only=True)  # Номер комнаты
+    guest_email = serializers.EmailField(source='guest.email', read_only=True)  # Email гостя из его таблицы
+    room_number = serializers.IntegerField(source='room.room_number', read_only=True)  # Номер комнаты из таблицы
 
     class Meta:
         model = Booking
