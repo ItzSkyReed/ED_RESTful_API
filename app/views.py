@@ -87,6 +87,32 @@ class GuestDetailView(APIView):
         guest.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @swagger_auto_schema(
+        operation_description="Обновить Email гостя",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL, description="Новый email"),
+            },
+            required=['email']
+        ),
+        responses={
+            200: openapi.Response(description="Email успешно обновлен"),
+            400: openapi.Response(description="Неверные данные"),
+            404: openapi.Response(description="Гость не найден"),
+        }
+    )
+    def patch(self, request: Request, pk: int):
+        guest = Guest.objects.filter(pk=pk).first()
+        if not guest:
+            return Response({"detail": "Гость не найден."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = GuestSerializer(guest, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class GuestByEmailView(APIView):
     @swagger_auto_schema(
